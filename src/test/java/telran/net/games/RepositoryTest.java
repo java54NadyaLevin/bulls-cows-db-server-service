@@ -17,7 +17,8 @@ public class RepositoryTest {
 	static {
 		HashMap<String, Object> hibernateProperties = new HashMap<>();
 		hibernateProperties.put("hibernate.hbm2ddl.auto", "create");
-		repository = new BullsCowsRepositoryJpa(new BullsCowsTestPersistenceUnitInfo(), hibernateProperties);
+		repository = new BullsCowsRepositoryJpa
+				(new BullsCowsTestPersistenceUnitInfo(), hibernateProperties);
 	}
 	static long gameId;
 	static String gamerUsername = "gamer1";
@@ -28,7 +29,8 @@ public class RepositoryTest {
 		Game game = repository.getGame(gameId);
 		assertNotNull(game);
 		assertNull(game.getDate());
-		assertFalse(game.isIs_finished());
+		assertFalse(game.isfinished());
+		
 		
 	}
 	@Test
