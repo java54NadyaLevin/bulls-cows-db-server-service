@@ -7,6 +7,7 @@ import org.hibernate.jpa.HibernatePersistenceProvider;
 
 import jakarta.persistence.*;
 import jakarta.persistence.spi.*;
+import telran.net.games.exceptions.GameGamerNotFoundException;
 import telran.net.games.exceptions.GameNotFoundException;
 import telran.net.games.exceptions.GamerAlreadyExistsdException;
 import telran.net.games.exceptions.GamerNotFoundException;
@@ -80,26 +81,26 @@ public class BullsCowsRepositoryJpa implements BullsCowsRepository {
 
 	@Override
 	public boolean isGameFinished(long id) {
-		// TODO Auto-generated method stub
-		return false;
+		Game game = getGame(id);
+		return game.isfinished();
 	}
 
 	@Override
 	public void setIsFinished(long gameId) {
-		// TODO Auto-generated method stub
+		EntityTransaction transaction = em.getTransaction();
+		transaction.begin();
+		Game game = getGame(gameId);
+		game.setfinished(true);
+		transaction.commit();
 
 	}
 
-	@Override
-	public void setGameGamerWinner(long gameId, String userName) {
-		// TODO Auto-generated method stub
-
-	}
 
 	@Override
 	public List<Long> getGameIdsNotStarted() {
-		// TODO Auto-generated method stub
-		return null;
+		TypedQuery<Long> query = em.createQuery(
+				"select id fromGame where dateTime is null", Long.class);
+		return query.getResultList();
 	}
 
 	@Override
@@ -121,26 +122,47 @@ public class BullsCowsRepositoryJpa implements BullsCowsRepository {
 
 	@Override
 	public void createGameGamerMove(MoveDto moveDto) {
-		// TODO Auto-generated method stub
+		long gameId = moveDto.gameId();
+		String username = moveDto.username();
+		GameGamer gameGamer = getGameGamer(gameId, username );
+		Move move = new Move(moveDto.sequence(), moveDto.bulls(), moveDto.cows(), gameGamer);
+		createObject(move);
 
 	}
 
+	private GameGamer getGameGamer(Long gameId, String username) {
+		TypedQuery<GameGamer> query = em.createQuery(
+						"select gameGamer from GameGamer gameGamer"
+						+ " where game.id = ?1 and gamer.username = ?2", GameGamer.class);
+		GameGamer gameGamer = query.setParameter(1, gameId).setParameter(2, username)
+				.getSingleResultOrNull();
+		if(gameGamer == null) {
+			throw new GameGamerNotFoundException(gameId, username);
+		}
+		return gameGamer;
+	}
 	@Override
 	public List<MoveData> getAllGameGamerMoves(long gameId, String username) {
-		// TODO Auto-generated method stub
-		return null;
+		GameGamer gameGamer = getGameGamer(gameId, username);
+		TypedQuery<MoveData> query = em.createQuery(
+				"select sequence, bulls, cows from Move where gameGamer.id = ?1", MoveData.class);
+		return query.setParameter(1, gameGamer.getId()).getResultList();
 	}
 
 	@Override
 	public void setWinner(long gameId, String username) {
-		// TODO Auto-generated method stub
+		EntityTransaction transaction = em.getTransaction();
+		transaction.begin();
+		GameGamer gameGamer = getGameGamer(gameId, username);
+		gameGamer.setWinner(true);
+		transaction.commit();
 
 	}
 
 	@Override
 	public boolean isWinner(long gameId, String username) {
-		// TODO Auto-generated method stub
-		return false;
+		GameGamer gameGamer = getGameGamer(gameId, username);
+		return gameGamer.isWinner();
 	}
 
 }
