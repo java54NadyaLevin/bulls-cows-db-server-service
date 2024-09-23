@@ -11,7 +11,13 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import telran.net.games.entities.Game;
+import telran.net.games.entities.Gamer;
 import telran.net.games.exceptions.*;
+import telran.net.games.model.MoveData;
+import telran.net.games.model.MoveDto;
+import telran.net.games.repo.BullsCowsRepository;
+import telran.net.games.repo.BullsCowsRepositoryJpa;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class RepositoryTest {
