@@ -7,6 +7,7 @@ import org.hibernate.jpa.HibernatePersistenceProvider;
 
 import jakarta.persistence.*;
 import jakarta.persistence.spi.*;
+import telran.net.games.exceptions.GameGamerAlreadyExistsException;
 import telran.net.games.exceptions.GameGamerNotFoundException;
 import telran.net.games.exceptions.GameNotFoundException;
 import telran.net.games.exceptions.GamerAlreadyExistsdException;
@@ -47,9 +48,14 @@ public class BullsCowsRepositoryJpa implements BullsCowsRepository {
 	}
 	private <T>void createObject(T obj) {
 		EntityTransaction transaction = em.getTransaction();
-		transaction.begin();
-		em.persist(obj);
-		transaction.commit();
+		try {
+			transaction.begin();
+			em.persist(obj);
+			transaction.commit();
+		} catch (Exception e) {
+			transaction.rollback();
+			throw e;
+		}
 	}
 
 	@Override
@@ -99,7 +105,7 @@ public class BullsCowsRepositoryJpa implements BullsCowsRepository {
 	@Override
 	public List<Long> getGameIdsNotStarted() {
 		TypedQuery<Long> query = em.createQuery(
-				"select id fromGame where dateTime is null", Long.class);
+				"select id from Game where dateTime is null", Long.class);
 		return query.getResultList();
 	}
 
@@ -113,10 +119,14 @@ public class BullsCowsRepositoryJpa implements BullsCowsRepository {
 
 	@Override
 	public void createGameGamer(long gameId, String username) {
-		Game game = getGame(gameId);
-		Gamer gamer = getGamer(username);
-		GameGamer gameGamer = new GameGamer(false, game, gamer);
-		createObject(gameGamer);
+		try {
+			Game game = getGame(gameId);
+			Gamer gamer = getGamer(username);
+			GameGamer gameGamer = new GameGamer(false, game, gamer);
+			createObject(gameGamer);
+		} catch (Exception e) {
+			throw new GameGamerAlreadyExistsException(gameId, username);
+		}
 
 	}
 

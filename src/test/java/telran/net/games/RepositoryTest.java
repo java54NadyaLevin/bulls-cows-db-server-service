@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import telran.net.games.exceptions.*;
+
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class RepositoryTest {
 	static BullsCowsRepository repository;
@@ -39,6 +41,8 @@ public class RepositoryTest {
 		repository.createNewGamer(gamerUsername, LocalDate.of(2000, 1, 1));
 		Gamer gamer = repository.getGamer(gamerUsername);
 		assertNotNull(gamer);
+		assertThrowsExactly(GamerAlreadyExistsdException.class, () ->
+				repository.createNewGamer(gamerUsername, LocalDate.of(2000, 1, 1)));
 		
 	}
 	@Order(3)
@@ -93,6 +97,40 @@ public class RepositoryTest {
 		repository.setWinner(gameId, gamerUsername);
 		assertTrue(repository.isWinner(gameId, gamerUsername));
 	}
+	@Test
+	void gameNotFoundTest() {
+		assertThrowsExactly(GameNotFoundException.class,
+				()->repository.getGame(1000));
+	}
+	@Test
+	void gamerNotFoundTest() {
+		assertThrowsExactly(GamerNotFoundException.class,
+				()->repository.getGamer("kuku"));
+	}
+	@Order(11)
+	@Test
+	void getGameIdsNotStartedTest() {
+		List<Long> ids = repository.getGameIdsNotStarted();
+		assertTrue(ids.isEmpty());
+		List<Long> expected = new ArrayList<>(3);
+		expected.add(repository.createNewGame("1234"));
+		expected.add(repository.createNewGame("1234"));
+		List<Long>actual = repository.getGameIdsNotStarted();
+		assertIterableEquals(expected, actual);
+		
+	}
+	
+	@Test
+	void gameGamerDuplicationTest() {
+		assertThrowsExactly(GameGamerAlreadyExistsException.class,
+				() ->repository.createGameGamer(gameId, gamerUsername));
+	}
+	@Test
+	void GameGamerNotFoundTest() {
+		assertThrowsExactly (GameGamerNotFoundException.class, ()-> repository.createGameGamerMove
+		(new MoveDto(1000l, gamerUsername, "1243", 2, 2)));
+	}
+	
 	
 
 
