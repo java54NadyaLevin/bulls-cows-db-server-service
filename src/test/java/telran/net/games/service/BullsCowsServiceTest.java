@@ -12,6 +12,7 @@ import org.junit.jupiter.api.*;
 import telran.net.games.BullsCowsTestPersistenceUnitInfo;
 import telran.net.games.entities.*;
 import telran.net.games.exceptions.*;
+import telran.net.games.model.MoveData;
 import telran.net.games.repo.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -19,11 +20,12 @@ class BullsCowsServiceTest {
 	private static final int N_DIGITS = 4;
 	static BullsCowsRepository repository;
 	static BullsCowsService bcService;
+	static BullsCowsGameRunner bcRunner;
 	static {
 		HashMap<String, Object> hibernateProperties = new HashMap<>();
 		hibernateProperties.put("hibernate.hbm2ddl.auto", "create-drop");
 		repository = new BullsCowsRepositoryJpa(new BullsCowsTestPersistenceUnitInfo(), hibernateProperties);
-		BullsCowsGameRunner bcRunner = new BullsCowsGameRunner(N_DIGITS);
+		bcRunner = new BullsCowsGameRunner(N_DIGITS);
 		bcService = new BullsCowsServiceImpl(repository, bcRunner);
 
 	}
@@ -73,24 +75,43 @@ class BullsCowsServiceTest {
 		Long gameId2 = bcService.createGame();
 		assertThrowsExactly(NoGamerInGameException.class, () -> bcService.startGame(gameId2));
 		bcService.gamerJoinGame(gameId2, gamerUsername);
+		
 		bcService.startGame(gameId2);
 		assertTrue(repository.isGameStarted(gameId2));
 		assertThrowsExactly(GameAlreadyStartedException.class, () -> bcService.startGame(gameId2));
 	}
 
-	// TODO Tests
-	// access the to be guessed sequence -
-	// ((BullsCowsServiceImpl)bcService).getSequence(gameId)
-//	
-//    @Test
-//    @Order(5)
-//    void moveProcessingTest() {
-//    	
-//    }
-//    
-//    @Test
-//    @Order(6)
-//    void gameOverTest() {
-//    	
-//    }
+    @Test
+    @Order(5)
+	
+	/**
+	 * returns all objects of MoveData of a given game and given gamer including the
+	 * last with the given parameters in the case of the winner's move the game
+	 * should be set as finished and the gamer in the game should be set as the
+	 * winner Exceptions: IncorrectMoveSequenceException (extends
+	 * IllegalArgumentException)_ GameNotFoundException GamerNotFoundException
+	 * GameNotStartedException (extends IllegalStateException) GameFinishedException
+	 * (extends IllegalStateException)
+	 */
+    void moveProcessingTest() {
+    	Long gameId2 = bcService.createGame();
+		bcService.gamerJoinGame(gameId2, gamerUsername);
+    	assertThrowsExactly(GameNotStartedException.class, 
+				() -> bcService.moveProcessing(bcRunner.getRandomSequence(), gameId2, gamerUsername));
+    	bcService.startGame(gameId2);
+    	assertThrowsExactly(IncorrectMoveSequenceException.class, 
+    			() -> bcService.moveProcessing("12345", gameId2, gamerUsername));
+    	assertThrowsExactly(IncorrectMoveSequenceException.class, 
+    			() -> bcService.moveProcessing("1233", gameId2, gamerUsername));
+    	assertThrowsExactly(GameNotFoundException.class, 
+    			() -> bcService.moveProcessing("1754", 22, gamerUsername));
+    	assertThrowsExactly(GamerNotFoundException.class, 
+    			() -> bcService.moveProcessing("1354", gameId, "noGamer"));
+    	List<MoveData> moves = bcService.moveProcessing(((BullsCowsServiceImpl)bcService).getSequence(gameId2), gameId2, gamerUsername);
+		assertEquals(N_DIGITS, moves.getLast().bulls());
+		assertTrue(repository.isGameFinished(gameId2));
+		assertTrue(repository.isWinner(gameId2, gamerUsername));
+ 
+    }
+
 }
