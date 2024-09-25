@@ -88,6 +88,21 @@ public class BullsCowsServiceImpl implements BullsCowsService {
 	 * (extends IllegalStateException)
 	 */
 	public List<MoveData> moveProcessing(String sequence, long gameId, String username) {
+		moveProcessingChecks(sequence, gameId, username);
+		MoveData moveData = bcRunner.moveProcessing(sequence, bcRepository.getGame(gameId).getSequence());
+		bcRepository.createGameGamerMove(new MoveDto(gameId, username, sequence, moveData.bulls(), moveData.cows()));
+		finishGameChanges(gameId, username, moveData);
+		return bcRepository.getAllGameGamerMoves(gameId, username);
+	}
+
+	private void finishGameChanges(long gameId, String username, MoveData moveData) {
+		if (bcRunner.checkGameFinished(moveData)) {
+			bcRepository.setIsFinished(gameId);
+			bcRepository.setWinner(gameId, username);
+		}
+	}
+
+	private void moveProcessingChecks(String sequence, long gameId, String username) {
 		bcRepository.getGame(gameId);
 		bcRepository.getGamer(username);
 		if (!bcRepository.isGameStarted(gameId)) {
@@ -100,15 +115,6 @@ public class BullsCowsServiceImpl implements BullsCowsService {
 		if (bcRepository.isGameFinished(gameId)) {
 			throw new GameFinishedException();
 		}
-
-		MoveData moveData = bcRunner.moveProcessing(sequence, bcRepository.getGame(gameId).getSequence());
-		bcRepository.createGameGamerMove(new MoveDto(gameId, username, sequence, moveData.bulls(), moveData.cows()));
-		if (bcRunner.checkGameFinished(moveData)) {
-			bcRepository.setIsFinished(gameId);
-			bcRepository.setWinner(gameId, username);
-		}
-
-		return bcRepository.getAllGameGamerMoves(gameId, username);
 	}
 
 	@Override
